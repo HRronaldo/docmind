@@ -1,4 +1,17 @@
-"""Main application entry point."""
+"""Main application entry point.
+
+DocMind - 智能文档摘要服务
+===========================
+
+本文件是 DocMind 应用的入口点，负责：
+1. 初始化 FastAPI 应用
+2. 配置 CORS 中间件
+3. 注册路由
+4. 管理应用生命周期（启动/关闭）
+
+使用方法：
+    uv run python -m app.main
+"""
 
 import os
 from contextlib import asynccontextmanager
@@ -7,20 +20,35 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from app.api.routes import router
-from app.core.config import HOST, PORT, DEBUG, ALLOWED_ORIGINS
+from app.core.config import HOST, PORT, DEBUG, ALLOWED_ORIGINS, ensure_port_available
 from app.services.chat_service import get_chat_service
 
-# Load environment variables
+# 加载 .env 文件中的环境变量
 load_dotenv()
+
+# ===== 启动前检查端口 =====
+# 如果端口被占用，尝试自动清理
+if not ensure_port_available(PORT):
+    print(f"\n[X] Port {PORT} is not available, please close the process")
+    exit(1)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan handler."""
-    # Startup
-    print("Starting Agent Summary Service...")
+    """
+    应用生命周期管理器。
 
-    # Try to initialize with API key from env if available
+    在应用启动时：
+    - 尝试从环境变量初始化 Agent
+    - 如果没有 API Key，提醒用户手动初始化
+
+    在应用关闭时：
+    - 清理资源
+    """
+    # ===== 启动阶段 =====
+    print("Starting DocMind Service...")
+
+    # 尝试使用环境变量中的 API Key 初始化服务
     api_key = os.getenv("ZHIPU_API_KEY")
     if api_key:
         try:
@@ -34,20 +62,21 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Shutdown
+    # ===== 关闭阶段 =====
     print("Shutting down...")
 
 
-# Create FastAPI app
+# ===== 创建 FastAPI 应用 =====
 app = FastAPI(
-    title="Agent Summary API",
-    description="AI-powered document summarization service with URL extraction",
+    title="DocMind API",
+    description="基于 LangChain + GLM 的智能文档摘要服务，支持 RESTful API 和 MCP 协议",
     version="1.0.0",
     lifespan=lifespan,
     debug=DEBUG,
 )
 
-# Add CORS middleware
+# ===== 配置 CORS 中间件 =====
+# 允许跨域请求，便于前端调用
 origins = ALLOWED_ORIGINS.split(",") if isinstance(ALLOWED_ORIGINS, str) else ["*"]
 
 app.add_middleware(
@@ -58,17 +87,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
+# ===== 注册路由 =====
 app.include_router(router)
 
 
-# Root endpoint
+# ===== 根路由 =====
 @app.get("/")
 async def root():
-    """Root endpoint."""
+    """
+    根路由，返回服务基本信息。
+
+    Returns:
+        dict: 服务名称、版本、可用端点
+    """
     return {
-        "name": "Agent Summary Service",
+        "name": "DocMind - 智能文档摘要服务",
         "version": "1.0.0",
+        "description": "基于 LangChain + GLM 的智能文档摘要服务",
         "docs": "/docs",
         "endpoints": {
             "health": "/api/v1/health",
@@ -79,6 +114,7 @@ async def root():
     }
 
 
+# ===== 启动入口 =====
 if __name__ == "__main__":
     import uvicorn
 
@@ -86,5 +122,5 @@ if __name__ == "__main__":
         "app.main:app",
         host=HOST,
         port=PORT,
-        reload=DEBUG,
+        reload=False,  # 临时禁用 watch
     )

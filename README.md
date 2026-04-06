@@ -120,6 +120,7 @@ fastmcp run app.mcp.server sse
 
 | 工具 | 说明 |
 |------|------|
+| `chat` | Multi-Agent 对话（Supervisor 决策 + Workers 执行 + Aggregator 汇总） |
 | `summarize_url` | 抓取 URL 并生成智能摘要 |
 | `extract_article_content` | 仅提取网页正文内容 |
 
@@ -182,12 +183,19 @@ docker-compose logs -f
 ```
 docmind/
 ├── app/
-│   ├── agent/          # LangChain Agent 核心
+│   ├── agent/          # Agent 核心模块
+│   │   ├── supervisor.py      # 任务规划器（LLM 决策）
+│   │   ├── aggregator.py      # 结果汇总器
+│   │   ├── multi_agent.py    # Multi-Agent 整合架构
+│   │   ├── react_agent.py    # ReAct Worker
+│   │   ├── langgraph_agent.py # LangGraph 状态机
+│   │   └── tools.py          # 工具定义
 │   ├── api/            # FastAPI 路由
 │   ├── mcp/            # MCP Server
 │   ├── services/       # 业务逻辑
 │   ├── core/           # 配置
 │   └── main.py         # 入口
+├── test/               # 测试文件
 ├── pyproject.toml      # 项目配置
 ├── docker-compose.yml  # Docker 部署
 └── Dockerfile
