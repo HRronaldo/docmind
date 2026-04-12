@@ -18,6 +18,7 @@ from app.mcp.servers import (
     extract_document_preview,
     sync_document_to_obsidian,
 )
+from app.nlp import extract_keywords, TermRecognizer
 
 # 自动加载项目根目录的 .env 文件
 load_dotenv()
@@ -308,20 +309,315 @@ def sync_document_to_obsidian_tool(
         return f"Error: {sync_result.get('error', '同步失败')}"
 
 
+@mcp.tool()
+def extract_keywords_from_url(url: str, top_k: int = 10) -> str:
+    """
+    从网页提取关键词。
+
+    使用 TF-IDF 和 TextRank 算法提取最重要的关键词。
+    适合快速了解文章的核心主题。
+
+    Args:
+        url: 要分析的网页 URL
+        top_k: 返回的关键词数量（默认 10）
+
+    Returns:
+        关键词列表
+    """
+    if not url:
+        return "Error: URL 不能为空"
+
+    try:
+        # 先抓取内容
+        downloaded = trafilatura.fetch_url(url)
+
+        if downloaded is None:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            }
+            response = requests.get(url, headers=headers, timeout=30)
+            response.raise_for_status()
+            downloaded = response.text
+
+        # 提取正文
+        result = trafilatura.extract(downloaded, output_format="json")
+
+        if result:
+            import json
+
+            data = json.loads(result)
+            text = data.get("text", "")
+
+            if text:
+                keywords = extract_keywords(text, top_k=top_k)
+
+                result_text = "【关键词提取结果】\n\n"
+                for i, keyword in enumerate(keywords, 1):
+                    result_text += f"{i}. {keyword}\n"
+
+                return result_text
+            else:
+                return "Error: 无法提取网页内容"
+        else:
+            return "Error: 无法提取网页内容"
+
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+@mcp.tool()
+def extract_keywords_from_text(text: str, top_k: int = 10) -> str:
+    """
+    从文本提取关键词。
+
+    Args:
+        text: 要分析的文本
+        top_k: 返回的关键词数量（默认 10）
+
+    Returns:
+        关键词列表
+    """
+    if not text:
+        return "Error: 文本不能为空"
+
+    try:
+        keywords = extract_keywords(text, top_k=top_k)
+
+        if not keywords:
+            return "未找到关键词"
+
+        result = "【关键词提取结果】\n\n"
+        for i, keyword in enumerate(keywords, 1):
+            result += f"{i}. {keyword}\n"
+
+        return result
+
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+@mcp.tool()
+def recognize_terms_in_url(
+    url: str, categories: str = "tech,framework,org,product"
+) -> str:
+    """
+    从网页识别专业术语。
+
+    支持类别：
+    - tech: 技术术语（深度学习、机器学习等）
+    - framework: 框架工具（PyTorch、FastAPI 等）
+    - org: 组织机构（Google、清华大学等）
+    - product: 产品名称（Obsidian、Notion 等）
+
+    Args:
+        url: 要分析的网页 URL
+        categories: 要识别的类别，用逗号分隔
+
+    Returns:
+        识别的术语列表
+    """
+    if not url:
+        return "Error: URL 不能为空"
+
+    try:
+        # 先抓取内容
+        downloaded = trafilatura.fetch_url(url)
+
+        if downloaded is None:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            }
+            response = requests.get(url, headers=headers, timeout=30)
+            response.raise_for_status()
+            downloaded = response.text
+
+        # 提取正文
+        result = trafilatura.extract(downloaded, output_format="json")
+
+        if result:
+            import json
+
+            data = json.loads(result)
+            text = data.get("text", "")
+
+            if text:
+                # 解析类别
+                cat_list = [c.strip() for c in categories.split(",")]
+
+                recognizer = TermRecognizer()
+                terms = recognizer.recognize(text, categories=cat_list)
+
+                if not terms:
+                    return "未识别到术语"
+
+                # 去重
+                seen = set()
+                unique_terms = []
+                for t in terms:
+                    if t["term"] not in seen:
+                        seen.add(t["term"])
+                        unique_terms.append(t)
+
+                result_text = "【术语识别结果】\n\n"
+                for term_info in unique_terms:
+                    result_text += f"- **{term_info['term']}** [{term_info['type']}]\n"
+
+                return result_text
+            else:
+                return "Error: 无法提取网页内容"
+        else:
+            return "Error: 无法提取网页内容"
+
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+@mcp.tool()
+def recognize_terms_in_text(
+    text: str, categories: str = "tech,framework,org,product"
+) -> str:
+    """
+    从文本识别专业术语。
+
+    Args:
+        text: 要分析的文本
+        categories: 要识别的类别，用逗号分隔
+
+    Returns:
+        识别的术语列表
+    """
+    if not text:
+        return "Error: 文本不能为空"
+
+    try:
+        cat_list = [c.strip() for c in categories.split(",")]
+        recognizer = TermRecognizer()
+        terms = recognizer.recognize(text, categories=cat_list)
+
+        if not terms:
+            return "未识别到术语"
+
+        # 去重
+        seen = set()
+        unique_terms = []
+        for t in terms:
+            if t["term"] not in seen:
+                seen.add(t["term"])
+                unique_terms.append(t)
+
+        result_text = "【术语识别结果】\n\n"
+        for term_info in unique_terms:
+            result_text += f"- **{term_info['term']}** [{term_info['type']}]\n"
+
+        return result_text
+
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+@mcp.tool()
+def analyze_document_full(
+    file_path: str,
+    include_keywords: bool = True,
+    include_terms: bool = True,
+    max_chars: int = 50000,
+) -> str:
+    """
+    综合分析文档，返回内容、关键词、术语。
+
+    适合一次性获取文档的完整分析结果。
+
+    Args:
+        file_path: 文档路径（PDF/EPUB）
+        include_keywords: 是否提取关键词
+        include_terms: 是否识别术语
+        max_chars: 最大分析字符数
+
+    Returns:
+        文档分析结果
+    """
+    if not file_path:
+        return "Error: 文件路径不能为空"
+
+    try:
+        # 解析文档
+        doc_result = extract_text_from_document(file_path, max_chars=max_chars)
+
+        if not doc_result.get("success"):
+            return f"Error: {doc_result.get('error', '解析失败')}"
+
+        text = doc_result.get("text", "")
+        metadata = doc_result.get("metadata", {})
+
+        result_parts = [f"# 文档分析结果\n"]
+        result_parts.append(f"**文件**: {metadata.get('file_name', 'Unknown')}\n")
+
+        # 提取关键词
+        if include_keywords:
+            keywords = extract_keywords(text, top_k=10)
+            result_parts.append("\n## 关键词\n")
+            for i, kw in enumerate(keywords, 1):
+                result_parts.append(f"{i}. {kw}\n")
+
+        # 识别术语
+        if include_terms:
+            recognizer = TermRecognizer()
+            terms = recognizer.recognize(text)
+
+            if terms:
+                # 去重并按类型分组
+                seen = set()
+                unique_terms = []
+                for t in terms:
+                    if t["term"] not in seen:
+                        seen.add(t["term"])
+                        unique_terms.append(t)
+
+                by_type = {}
+                for t in unique_terms:
+                    t_type = t["type"]
+                    if t_type not in by_type:
+                        by_type[t_type] = []
+                    by_type[t_type].append(t["term"])
+
+                result_parts.append("\n## 术语\n")
+                for t_type, term_list in by_type.items():
+                    result_parts.append(f"\n### {t_type}\n")
+                    for term in term_list:
+                        result_parts.append(f"- **{term}**\n")
+
+        result_parts.append(f"\n---\n\n## 正文\n")
+        result_parts.append(text)
+
+        return "".join(result_parts)
+
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
 @mcp.resource("docmind://status")
 def get_status() -> dict:
     """获取 DocMind 服务状态"""
     return {
         "name": "DocMind",
-        "version": "0.3.0",
+        "version": "0.5.0",
         "status": "running",
         "architecture": "Supervisor + Workers + Aggregator",
         "features": [
+            # 对话
             "chat - Multi-Agent 对话（Supervisor 决策）",
+            # URL 处理
             "summarize_url - URL 摘要生成",
             "extract_article_content - 仅提取正文",
+            "extract_keywords_from_url - 从 URL 提取关键词",
+            "recognize_terms_in_url - 从 URL 识别术语",
+            # 文本处理
+            "extract_keywords_from_text - 从文本提取关键词",
+            "recognize_terms_in_text - 从文本识别术语",
+            # 文档处理
             "parse_document - PDF/EPUB 文档解析",
             "parse_document_preview - 文档预览",
+            "analyze_document_full - 综合文档分析",
             "sync_document_to_obsidian - 同步到 Obsidian",
         ],
     }
