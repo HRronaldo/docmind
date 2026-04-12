@@ -159,5 +159,54 @@ class TestObsidianSync:
         assert "success" in result
 
 
+class TestNLP:
+    """NLP 模块测试"""
+
+    def test_segment_text(self):
+        """测试分词功能"""
+        from app.nlp import segment_text
+
+        text = "深度学习是机器学习的重要分支"
+        words = segment_text(text)
+        assert isinstance(words, list)
+        assert len(words) > 0
+        # 应该能识别出"深度学习"等术语
+        assert "深度学习" in words or "深度" in words
+
+    def test_extract_keywords(self):
+        """测试关键词提取"""
+        from app.nlp import extract_keywords
+
+        text = "深度学习是机器学习的一个重要分支，PyTorch是常用的深度学习框架"
+        keywords = extract_keywords(text, top_k=3)
+        assert isinstance(keywords, list)
+        assert len(keywords) <= 3
+        # 应该包含深度学习、机器学习等
+        assert "深度学习" in keywords or "机器学习" in keywords
+
+    def test_term_recognizer(self):
+        """测试术语识别"""
+        from app.nlp import TermRecognizer
+
+        text = "PyTorch是深度学习框架"
+        recognizer = TermRecognizer()
+        terms = recognizer.recognize(text)
+        assert isinstance(terms, list)
+        # 应该识别出PyTorch和深度学习
+        term_texts = [t["term"] for t in terms]
+        assert "PyTorch" in term_texts
+        assert "深度学习" in term_texts
+
+    def test_term_annotate(self):
+        """测试术语标注"""
+        from app.nlp import TermRecognizer
+
+        text = "PyTorch是深度学习框架"
+        recognizer = TermRecognizer()
+        annotated = recognizer.annotate_text(text)
+        assert "**PyTorch**" in annotated
+        assert "**深度学习**" in annotated
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

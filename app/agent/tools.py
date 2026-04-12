@@ -1,7 +1,7 @@
 """Tools for the Agent.
 
 DocMind Agent 工具模块
-=======================
+======================
 
 本模块定义了 Agent 可以调用的工具（Tools）。
 使用 LangChain 的 @tool 装饰器将函数转换为 Agent 可调用的工具。
@@ -9,6 +9,8 @@ DocMind Agent 工具模块
 工具列表：
 - fetch_url_content: 抓取网页内容
 - summarize_text: 文本摘要
+- extract_keywords: 关键词提取
+- recognize_terms: 术语识别
 - parse_pdf: 解析 PDF 文档
 - parse_epub: 解析 EPUB 文档
 - sync_to_obsidian: 同步到 Obsidian
@@ -18,7 +20,7 @@ DocMind Agent 工具模块
 
 import trafilatura
 import requests
-from typing import Optional
+from typing import Optional, List
 from langchain_core.tools import tool
 from pathlib import Path
 
@@ -27,11 +29,25 @@ from app.mcp.servers.pdf_parser import extract_text_from_pdf
 from app.mcp.servers.epub_parser import extract_text_from_epub
 from app.mcp.servers.obsidian_sync import sync_document_to_obsidian
 
+# 导入 NLP 功能
+from app.nlp import extract_keywords, TermRecognizer
+
 # 导入重试装饰器
 from app.core.utils import retry
 from app.core.logger import get_logger
 
 logger = get_logger("docmind.tools")
+
+# NLP 工具实例（复用）
+_term_recognizer = None
+
+
+def _get_term_recognizer() -> TermRecognizer:
+    """获取术语识别器单例"""
+    global _term_recognizer
+    if _term_recognizer is None:
+        _term_recognizer = TermRecognizer()
+    return _term_recognizer
 
 
 @retry(max_attempts=3, delay=1.0, exceptions=(requests.exceptions.RequestException,))
@@ -293,11 +309,138 @@ def sync_to_obsidian(
         return f"Error: {str(e)}"
 
 
+@tool
+def extract_keywords_from_text(text: str, top_k: int = 10) -> str:
+    """
+    从文本中提取关键词。
+
+    使用 TF-IDF 和 TextRank 算法提取最重要的关键词。
+
+    Args:
+        text: 输入文本
+        top_k: 返回的关键词数量（默认 10）
+
+    Returns:
+        关键词列表及得分
+
+    示例输出:
+        1. 深度学习 (0.95)
+        2. 机器学习 (0.88)
+        3. PyTorch (0.75)
+    """
+    if not text:
+        return "Error: 文本不能为空"
+
+    try:
+        keywords = extract_keywords(text, top_k=top_k)
+
+        if not keywords:
+            return "未找到关键词"
+
+        result = "【关键词提取结果】\n\n"
+        for i, keyword in enumerate(keywords, 1):
+            result += f"{i}. {keyword}\n"
+
+        return result
+
+    except Exception as e:
+        return f"Error: 关键词提取失败 - {str(e)}"
+
+
+@tool
+def recognize_terms_in_text(
+    text: str,
+    categories: str = "tech,framework,org,product",
+) -> str:
+    """
+    识别文本中的专业术语。
+
+    支持类别：
+    - tech: 技术术语（深度学习、机器学习等）
+    - framework: 框架工具（PyTorch、FastAPI 等）
+    - org: 组织机构（Google、清华大学等）
+    - product: 产品名称（Obsidian、Notion 等）
+
+    Args:
+        text: 输入文本
+        categories: 要识别的类别，用逗号分隔（默认全部）
+
+    Returns:
+        识别的术语列表，带类型标注
+
+    示例输出:
+        - **深度学习** [tech]
+        - **PyTorch** [framework]
+        - **Google** [org]
+    """
+    if not text:
+        return "Error: 文本不能为空"
+
+    try:
+        # 解析类别
+        cat_list = [c.strip() for c in categories.split(",")]
+
+        recognizer = _get_term_recognizer()
+        terms = recognizer.recognize(text, categories=cat_list)
+
+        if not terms:
+            return "未识别到术语"
+
+        # 去重
+        seen = set()
+        unique_terms = []
+        for t in terms:
+            if t["term"] not in seen:
+                seen.add(t["term"])
+                unique_terms.append(t)
+
+        result = "【术语识别结果】\n\n"
+        for term_info in unique_terms:
+            result += f"- **{term_info['term']}** [{term_info['type']}]\n"
+
+        return result
+
+    except Exception as e:
+        return f"Error: 术语识别失败 - {str(e)}"
+
+
+@tool
+def annotate_text_with_terms(text: str) -> str:
+    """
+    标注文本中的专业术语。
+
+    将识别出的术语用加粗格式标注。
+
+    Args:
+        text: 输入文本
+
+    Returns:
+        标注后的文本
+
+    示例:
+        输入: "深度学习是机器学习的一个分支，PyTorch 是常用框架"
+        输出: "**深度学习**是**机器学习**的一个分支，**PyTorch** 是常用框架"
+    """
+    if not text:
+        return "Error: 文本不能为空"
+
+    try:
+        recognizer = _get_term_recognizer()
+        annotated = recognizer.annotate_text(text)
+        return annotated
+
+    except Exception as e:
+        return f"Error: 术语标注失败 - {str(e)}"
+
+
 # ===== 可用工具列表 =====
 # 这个列表会被绑定到 LLM，使 Agent 能够调用这些工具
 AVAILABLE_TOOLS = [
     fetch_url_content,
     summarize_text,
+    extract_keywords_from_text,
+    recognize_terms_in_text,
+    annotate_text_with_terms,
     parse_pdf,
     parse_epub,
     sync_to_obsidian,
