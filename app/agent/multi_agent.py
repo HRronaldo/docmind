@@ -13,7 +13,12 @@ from typing import TypedDict, List, Dict, Any, Optional
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import StateGraph, START, END
 
-from app.agent.tools import fetch_url_content
+from app.agent.tools import (
+    fetch_url_content,
+    parse_pdf,
+    parse_epub,
+    sync_to_obsidian,
+)
 from app.agent.supervisor import supervisor_node
 from app.agent.aggregator import aggregator_node
 
@@ -50,6 +55,83 @@ def execute_workers_node(state: MultiAgentState) -> dict:
                     worker_results.append(
                         {"url": url, "content": f"Error: {str(e)}", "type": "fetch"}
                     )
+
+        elif task_type == "parse_pdf":
+            file_path = task.get("file_path", "")
+            if file_path:
+                try:
+                    content = parse_pdf.invoke({"file_path": file_path})
+                    worker_results.append(
+                        {
+                            "file_path": file_path,
+                            "content": str(content),
+                            "type": "parse_pdf",
+                        }
+                    )
+                    print(f"[Workers] 任务 {i + 1} 完成: {len(str(content))} 字符")
+                except Exception as e:
+                    worker_results.append(
+                        {
+                            "file_path": file_path,
+                            "content": f"Error: {str(e)}",
+                            "type": "parse_pdf",
+                        }
+                    )
+
+        elif task_type == "parse_epub":
+            file_path = task.get("file_path", "")
+            if file_path:
+                try:
+                    content = parse_epub.invoke({"file_path": file_path})
+                    worker_results.append(
+                        {
+                            "file_path": file_path,
+                            "content": str(content),
+                            "type": "parse_epub",
+                        }
+                    )
+                    print(f"[Workers] 任务 {i + 1} 完成: {len(str(content))} 字符")
+                except Exception as e:
+                    worker_results.append(
+                        {
+                            "file_path": file_path,
+                            "content": f"Error: {str(e)}",
+                            "type": "parse_epub",
+                        }
+                    )
+
+        elif task_type == "sync_obsidian":
+            content = task.get("content", "")
+            title = task.get("title", "")
+            vault_path = task.get("vault_path", "")
+            folder = task.get("folder", "DocMind")
+            if content and title and vault_path:
+                try:
+                    result = sync_to_obsidian.invoke(
+                        {
+                            "content": content,
+                            "title": title,
+                            "vault_path": vault_path,
+                            "folder": folder,
+                        }
+                    )
+                    worker_results.append(
+                        {
+                            "title": title,
+                            "content": str(result),
+                            "type": "sync_obsidian",
+                        }
+                    )
+                    print(f"[Workers] 任务 {i + 1} 完成: Obsidian 同步")
+                except Exception as e:
+                    worker_results.append(
+                        {
+                            "title": title,
+                            "content": f"Error: {str(e)}",
+                            "type": "sync_obsidian",
+                        }
+                    )
+
         elif task_type == "qa":
             question = task.get("question", "")
             worker_results.append({"url": "qa", "content": question, "type": "qa"})

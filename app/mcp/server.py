@@ -13,7 +13,11 @@ from typing import Optional
 from fastmcp import FastMCP
 
 from app.agent.multi_agent import get_multi_agent
-from app.mcp.servers import extract_text_from_document, extract_document_preview
+from app.mcp.servers import (
+    extract_text_from_document,
+    extract_document_preview,
+    sync_document_to_obsidian,
+)
 
 # 自动加载项目根目录的 .env 文件
 load_dotenv()
@@ -254,6 +258,56 @@ def parse_document_preview(file_path: str, max_chars: int = 2000) -> str:
         return f"Error: {result.get('error', '未知错误')}"
 
 
+@mcp.tool()
+def sync_document_to_obsidian_tool(
+    document_path: str,
+    vault_path: str,
+    folder: str = "DocMind",
+    tags: Optional[str] = None,
+) -> str:
+    """
+    解析文档并同步到 Obsidian vault。
+
+    Args:
+        document_path: 文档文件路径（PDF/EPUB）
+        vault_path: Obsidian vault 路径
+        folder: 保存的子文件夹（默认 DocMind）
+        tags: 标签，逗号分隔（可选）
+
+    Returns:
+        同步结果
+    """
+    if not document_path:
+        return "Error: 文档路径不能为空"
+
+    if not vault_path:
+        return "Error: Obsidian vault 路径不能为空"
+
+    # 解析文档
+    doc_result = extract_text_from_document(document_path)
+
+    if not doc_result.get("success"):
+        return f"Error: {doc_result.get('error', '解析失败')}"
+
+    # 解析标签
+    tag_list = [t.strip() for t in tags.split(",")] if tags else None
+
+    # 同步到 Obsidian
+    sync_result = sync_document_to_obsidian(
+        document_result=doc_result, vault_path=vault_path, folder=folder, tags=tag_list
+    )
+
+    if sync_result.get("success"):
+        return f"""✅ 文档已同步到 Obsidian
+
+**路径**: {sync_result.get("relative_path")}
+**文件**: {sync_result.get("path")}
+
+文档已保存到 Obsidian vault 中的 {folder} 文件夹。"""
+    else:
+        return f"Error: {sync_result.get('error', '同步失败')}"
+
+
 @mcp.resource("docmind://status")
 def get_status() -> dict:
     """获取 DocMind 服务状态"""
@@ -268,6 +322,7 @@ def get_status() -> dict:
             "extract_article_content - 仅提取正文",
             "parse_document - PDF/EPUB 文档解析",
             "parse_document_preview - 文档预览",
+            "sync_document_to_obsidian - 同步到 Obsidian",
         ],
     }
 
