@@ -1,14 +1,14 @@
 """Chat service - business logic for chat operations."""
 
 from typing import Dict, Any, Optional
-from app.agent.chain import SummaryAgent, get_agent, init_agent
+from app.agent.langgraph_agent import LangGraphAgent, get_agent, init_agent
 
 
 class ChatService:
     """Service for handling chat operations."""
 
     def __init__(self):
-        self.agent: Optional[SummaryAgent] = None
+        self.agent: Optional[LangGraphAgent] = None
 
     def initialize(self, api_key: str, **kwargs):
         """Initialize the agent with API key."""

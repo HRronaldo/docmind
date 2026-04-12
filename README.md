@@ -12,6 +12,8 @@
 ## ✨ 特性
 
 - 📄 **URL 智能摘要** - 自动抓取网页内容并生成精准摘要
+- 📑 **PDF/EPUB 解析** - 直接解析本地文档文件
+- 📝 **Obsidian 同步** - 一键保存到 Obsidian vault
 - 🔌 **双协议支持** - 同时支持 RESTful API 和 MCP 协议
 - 🤖 **MCP Server** - 可无缝集成到 Claude Desktop、OpenCode、Cursor 等 AI 助手
 - 🧠 **多模型支持** - 支持智谱 GLM 系列模型（GLM-4、GLM-4-Flash、GLM-5）
@@ -120,8 +122,12 @@ fastmcp run app.mcp.server sse
 
 | 工具 | 说明 |
 |------|------|
+| `chat` | Multi-Agent 对话（Supervisor 决策 + Workers 执行 + Aggregator 汇总） |
 | `summarize_url` | 抓取 URL 并生成智能摘要 |
 | `extract_article_content` | 仅提取网页正文内容 |
+| `parse_document` | 解析 PDF/EPUB 文档并提取文本 |
+| `parse_document_preview` | 文档预览（快速摘要） |
+| `sync_document_to_obsidian` | 将解析后的文档同步到 Obsidian vault |
 
 ---
 
@@ -182,12 +188,25 @@ docker-compose logs -f
 ```
 docmind/
 ├── app/
-│   ├── agent/          # LangChain Agent 核心
+│   ├── agent/          # Agent 核心模块
+│   │   ├── supervisor.py      # 任务规划器（LLM 决策）
+│   │   ├── aggregator.py      # 结果汇总器
+│   │   ├── multi_agent.py    # Multi-Agent 整合架构
+│   │   ├── react_agent.py    # ReAct Worker
+│   │   ├── langgraph_agent.py # LangGraph 状态机
+│   │   └── tools.py          # 工具定义（fetch_url, parse_pdf, parse_epub, sync_obsidian）
 │   ├── api/            # FastAPI 路由
 │   ├── mcp/            # MCP Server
+│   │   ├── server.py          # MCP 主服务器
+│   │   └── servers/           # MCP 服务模块
+│   │       ├── document_parser.py  # 文档解析（PDF/EPUB）
+│   │       ├── pdf_parser.py       # PDF 解析
+│   │       ├── epub_parser.py      # EPUB 解析
+│   │       └── obsidian_sync.py    # Obsidian 同步
 │   ├── services/       # 业务逻辑
 │   ├── core/           # 配置
 │   └── main.py         # 入口
+├── test/               # 测试文件
 ├── pyproject.toml      # 项目配置
 ├── docker-compose.yml  # Docker 部署
 └── Dockerfile
