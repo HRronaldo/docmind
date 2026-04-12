@@ -13,6 +13,7 @@ from typing import Optional
 from fastmcp import FastMCP
 
 from app.agent.multi_agent import get_multi_agent
+from app.mcp.servers import extract_text_from_document, extract_document_preview
 
 # 自动加载项目根目录的 .env 文件
 load_dotenv()
@@ -178,18 +179,95 @@ async def chat(message: str) -> str:
     return result.get("response", "")
 
 
+@mcp.tool()
+def parse_document(file_path: str, max_chars: int = 50000) -> str:
+    """
+    解析 PDF 或 EPUB 文档并提取文本内容。
+
+    Args:
+        file_path: 文档文件路径（支持 .pdf, .epub, .mobi）
+        max_chars: 最大提取字符数（默认 50000）
+
+    Returns:
+        提取的文本内容
+    """
+    if not file_path:
+        return "Error: 文件路径不能为空"
+
+    result = extract_text_from_document(file_path, max_chars=max_chars)
+
+    if result["success"]:
+        metadata = result.get("metadata", {})
+        text = result.get("text", "")
+
+        header = f"""## 文档解析结果
+
+**文件名**: {metadata.get("file_name", "Unknown")}
+**标题**: {metadata.get("title", "N/A")}
+**作者**: {metadata.get("author", "N/A")}
+
+"""
+
+        if metadata.get("total_pages"):
+            header += f"**页数**: {metadata.get('total_pages')}\n"
+        if metadata.get("extracted_chapters"):
+            header += f"**章节数**: {metadata.get('extracted_chapters')}\n"
+        header += f"**字符数**: {metadata.get('char_count', len(text))}\n\n"
+
+        return header + text
+    else:
+        return f"Error: {result.get('error', '未知错误')}"
+
+
+@mcp.tool()
+def parse_document_preview(file_path: str, max_chars: int = 2000) -> str:
+    """
+    解析文档并生成预览（快速摘要）。
+
+    Args:
+        file_path: 文档文件路径
+        max_chars: 最大字符数（默认 2000）
+
+    Returns:
+        文档预览文本
+    """
+    if not file_path:
+        return "Error: 文件路径不能为空"
+
+    result = extract_document_preview(file_path, max_chars=max_chars)
+
+    if result["success"]:
+        metadata = result.get("metadata", {})
+        text = result.get("text", "")
+
+        header = f"""## 文档预览
+
+**文件名**: {metadata.get("file_name", "Unknown")}
+**字符数**: {metadata.get("char_count", len(text))}
+
+---
+
+"""
+
+        return header + text
+    else:
+        return f"Error: {result.get('error', '未知错误')}"
+
+
 @mcp.resource("docmind://status")
 def get_status() -> dict:
     """获取 DocMind 服务状态"""
     return {
         "name": "DocMind",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "status": "running",
         "architecture": "Supervisor + Workers + Aggregator",
         "features": [
             "chat - Multi-Agent 对话（Supervisor 决策）",
             "summarize_url - URL 摘要生成",
             "extract_article_content - 仅提取正文",
+            "parse_document - PDF/EPUB 文档解析",
+            "parse_document_preview - 文档预览",
         ],
     }
 
