@@ -27,7 +27,14 @@ from app.mcp.servers.pdf_parser import extract_text_from_pdf
 from app.mcp.servers.epub_parser import extract_text_from_epub
 from app.mcp.servers.obsidian_sync import sync_document_to_obsidian
 
+# 导入重试装饰器
+from app.core.utils import retry
+from app.core.logger import get_logger
 
+logger = get_logger("docmind.tools")
+
+
+@retry(max_attempts=3, delay=1.0, exceptions=(requests.exceptions.RequestException,))
 @tool
 def fetch_url_content(url: str) -> str:
     """

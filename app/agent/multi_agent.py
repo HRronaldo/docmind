@@ -21,6 +21,9 @@ from app.agent.tools import (
 )
 from app.agent.supervisor import supervisor_node
 from app.agent.aggregator import aggregator_node
+from app.core.logger import get_logger, log_error
+
+logger = get_logger("docmind.multi_agent")
 
 
 class MultiAgentState(TypedDict):
@@ -36,11 +39,11 @@ def execute_workers_node(state: MultiAgentState) -> dict:
     tasks = state.get("tasks", [])
     worker_results = []
 
-    print(f"[Workers] 开始执行 {len(tasks)} 个任务...")
+    logger.info(f"开始执行 {len(tasks)} 个任务...")
 
     for i, task in enumerate(tasks):
         task_type = task.get("type", "qa")
-        print(f"[Workers] 任务 {i + 1}/{len(tasks)}: {task_type}")
+        logger.info(f"任务 {i + 1}/{len(tasks)}: {task_type}")
 
         if task_type == "fetch":
             url = task.get("url", "")
@@ -50,8 +53,9 @@ def execute_workers_node(state: MultiAgentState) -> dict:
                     worker_results.append(
                         {"url": url, "content": str(content), "type": "fetch"}
                     )
-                    print(f"[Workers] 任务 {i + 1} 完成: {len(str(content))} 字符")
+                    logger.info(f"任务 {i + 1} 完成: {len(str(content))} 字符")
                 except Exception as e:
+                    log_error(e, f"fetch task: {url}")
                     worker_results.append(
                         {"url": url, "content": f"Error: {str(e)}", "type": "fetch"}
                     )
@@ -68,8 +72,9 @@ def execute_workers_node(state: MultiAgentState) -> dict:
                             "type": "parse_pdf",
                         }
                     )
-                    print(f"[Workers] 任务 {i + 1} 完成: {len(str(content))} 字符")
+                    logger.info(f"任务 {i + 1} 完成: {len(str(content))} 字符")
                 except Exception as e:
+                    log_error(e, f"parse_pdf task: {file_path}")
                     worker_results.append(
                         {
                             "file_path": file_path,
@@ -90,8 +95,9 @@ def execute_workers_node(state: MultiAgentState) -> dict:
                             "type": "parse_epub",
                         }
                     )
-                    print(f"[Workers] 任务 {i + 1} 完成: {len(str(content))} 字符")
+                    logger.info(f"任务 {i + 1} 完成: {len(str(content))} 字符")
                 except Exception as e:
+                    log_error(e, f"parse_epub task: {file_path}")
                     worker_results.append(
                         {
                             "file_path": file_path,
@@ -122,8 +128,9 @@ def execute_workers_node(state: MultiAgentState) -> dict:
                             "type": "sync_obsidian",
                         }
                     )
-                    print(f"[Workers] 任务 {i + 1} 完成: Obsidian 同步")
+                    logger.info(f"任务 {i + 1} 完成: Obsidian 同步")
                 except Exception as e:
+                    log_error(e, f"sync_obsidian task: {title}")
                     worker_results.append(
                         {
                             "title": title,
@@ -136,7 +143,7 @@ def execute_workers_node(state: MultiAgentState) -> dict:
             question = task.get("question", "")
             worker_results.append({"url": "qa", "content": question, "type": "qa"})
 
-    print(f"[Workers] 执行完成，共 {len(worker_results)} 个结果")
+    logger.info(f"执行完成，共 {len(worker_results)} 个结果")
     return {"worker_results": worker_results}
 
 

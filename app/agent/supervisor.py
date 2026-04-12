@@ -24,6 +24,9 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_community.chat_models import ChatZhipuAI
 
 from app.core.config import GLM_MODEL, GLM_TEMPERATURE, ZHIPU_API_KEY
+from app.core.logger import get_logger
+
+logger = get_logger("docmind.supervisor")
 
 
 class SupervisorState(TypedDict):
@@ -78,7 +81,7 @@ def _parse_llm_response(content: str) -> dict:
             pass
 
     # 全部失败，返回默认值
-    print(f"[Supervisor] 解析失败，使用默认策略。原始内容: {content[:100]}")
+    logger.warning(f"解析失败，使用默认策略。原始内容: {content[:100]}")
     return default
 
 
@@ -108,7 +111,7 @@ def _validate_decision(decision: dict) -> dict:
     # 验证 strategy 值
     valid_strategies = ["single", "parallel", "sequential"]
     if decision["strategy"] not in valid_strategies:
-        print(f"[Supervisor] 无效 strategy '{decision['strategy']}'，使用 'single'")
+        logger.warning(f"无效 strategy '{decision['strategy']}'，使用 'single'")
         decision["strategy"] = "single"
 
     # 验证 tasks 是列表
@@ -159,13 +162,13 @@ def supervisor_node(state: SupervisorState) -> dict:
 
     # 解析 + 验证
     raw_content = str(response.content)
-    print(f"[Supervisor] LLM 原始输出: {raw_content[:200]}")
+    logger.info(f"LLM 原始输出: {raw_content[:200]}")
 
     decision = _parse_llm_response(raw_content)
     decision = _validate_decision(decision)
 
-    print(
-        f"[Supervisor] 决策: strategy={decision['strategy']}, tasks={len(decision['tasks'])}, need_qa={decision['need_qa']}"
+    logger.info(
+        f"决策: strategy={decision['strategy']}, tasks={len(decision['tasks'])}, need_qa={decision['need_qa']}"
     )
 
     return decision
