@@ -31,6 +31,7 @@ from app.nlp.segmenter import segment_text, Segmenter
 from app.nlp.keywords import extract_keywords, KeywordExtractor
 from app.nlp.terms import TermRecognizer
 from app.nlp.kg import KnowledgeGraph, extract_entities_relations, build_graph_from_texts
+from app.nlp.templates import generate_note_template, generate_from_content, extract_highlights, NoteTemplate
 
 __all__ = [
     "segment_text",
@@ -41,4 +42,8 @@ __all__ = [
     "KnowledgeGraph",
     "extract_entities_relations",
     "build_graph_from_texts",
+    "generate_note_template",
+    "generate_from_content",
+    "extract_highlights",
+    "NoteTemplate",
 ]

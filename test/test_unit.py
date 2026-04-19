@@ -255,5 +255,42 @@ class TestKnowledgeGraph:
         assert len(neighbors) > 0
 
 
+class TestNoteTemplates:
+    """笔记模板测试"""
+
+    def test_note_template_summary(self):
+        """测试摘要模板"""
+        from app.nlp.templates import generate_note_template
+
+        template = generate_note_template("summary", title="Test", source="test.com")
+        assert "Test" in template
+        assert "test.com" in template
+
+    def test_note_template_book(self):
+        """测试读书笔记模板"""
+        from app.nlp.templates import generate_note_template
+
+        template = generate_note_template("book", book_title="Python", author="Guido")
+        assert "Python" in template
+        assert "Guido" in template
+
+    def test_extract_highlights(self):
+        """测试高亮提取"""
+        from app.nlp.templates import extract_highlights
+
+        content = "深度学习是机器学习。Transformer在2017年发布。"
+        highlights = extract_highlights(content)
+        assert isinstance(highlights, list)
+
+    def test_note_template_types(self):
+        """测试支持模板类型"""
+        from app.nlp.templates import NoteTemplate
+
+        types = NoteTemplate.get_template_types()
+        assert "summary" in types
+        assert "book" in types
+        assert "meeting" in types
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
