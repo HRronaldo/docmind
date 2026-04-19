@@ -12,6 +12,9 @@
 ## ✨ 特性
 
 - 📄 **URL 智能摘要** - 自动抓取网页内容并生成精准摘要
+- 🔑 **关键词提取** - TF-IDF + TextRank 算法，自动识别核心概念
+- 🏷️ **术语识别** - 自动识别技术术语（Framework、Org、Product）
+- 🕸️ **知识图谱** - 实体关系提取，构建知识网络
 - 📑 **PDF/EPUB 解析** - 直接解析本地文档文件
 - 📝 **Obsidian 同步** - 一键保存到 Obsidian vault
 - 🔌 **双协议支持** - 同时支持 RESTful API 和 MCP 协议
@@ -125,8 +128,14 @@ fastmcp run app.mcp.server sse
 | `chat` | Multi-Agent 对话（Supervisor 决策 + Workers 执行 + Aggregator 汇总） |
 | `summarize_url` | 抓取 URL 并生成智能摘要 |
 | `extract_article_content` | 仅提取网页正文内容 |
+| `extract_keywords_from_url` | 从 URL 提取关键词 |
+| `extract_keywords_from_text` | 从文本提取关键词 |
+| `recognize_terms_in_url` | 从 URL 识别专业术语 |
+| `recognize_terms_in_text` | 从文本识别术语 |
+| `build_knowledge_graph_from_text` | 构建知识图谱（实体+关系） |
 | `parse_document` | 解析 PDF/EPUB 文档并提取文本 |
 | `parse_document_preview` | 文档预览（快速摘要） |
+| `analyze_document_full` | 综合文档分析（内容+关键词+术语） |
 | `sync_document_to_obsidian` | 将解析后的文档同步到 Obsidian vault |
 
 ---
@@ -194,7 +203,13 @@ docmind/
 │   │   ├── multi_agent.py    # Multi-Agent 整合架构
 │   │   ├── react_agent.py    # ReAct Worker
 │   │   ├── langgraph_agent.py # LangGraph 状态机
-│   │   └── tools.py          # 工具定义（fetch_url, parse_pdf, parse_epub, sync_obsidian）
+│   │   ├── tools.py          # 工具定义
+│   │   └── prompt.py        # Prompt 模板
+│   ├── nlp/            # 中文 NLP 模块
+│   │   ├── segmenter.py   # 中文分词（jieba）
+│   │   ├── keywords.py    # 关键词提取
+│   │   ├── terms.py      # 术语识别
+│   │   └── kg.py        # 知识图谱
 │   ├── api/            # FastAPI 路由
 │   ├── mcp/            # MCP Server
 │   │   ├── server.py          # MCP 主服务器
@@ -207,6 +222,7 @@ docmind/
 │   ├── core/           # 配置
 │   └── main.py         # 入口
 ├── test/               # 测试文件
+│   └── test_unit.py   # 单元测试
 ├── pyproject.toml      # 项目配置
 ├── docker-compose.yml  # Docker 部署
 └── Dockerfile
