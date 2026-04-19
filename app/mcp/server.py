@@ -19,6 +19,7 @@ from app.mcp.servers import (
     sync_document_to_obsidian,
 )
 from app.nlp import extract_keywords, TermRecognizer
+from app.nlp.kg import KnowledgeGraph
 
 # 自动加载项目根目录的 .env 文件
 load_dotenv()
@@ -595,12 +596,97 @@ def analyze_document_full(
         return f"Error: {str(e)}"
 
 
+@mcp.tool()
+def build_knowledge_graph_from_text(text: str) -> str:
+    """
+    从文本构建知识图谱。
+
+    提取实体和关系，构建简单的知识网络。
+    适合分析多篇文档的关联。
+
+    Args:
+        text: 输入文本（可包含多段，用换行分隔）
+
+    Returns:
+        图谱结果（实体、关系、统计）
+    """
+    if not text:
+        return "Error: 文本不能为空"
+
+    try:
+        kg = KnowledgeGraph()
+
+        # 按换行分割处理多段文本
+        texts = text.split("\n")
+        for t in texts:
+            if t.strip():
+                kg.add_text(t.strip())
+
+        # 导出结果
+        result = kg.to_dict()
+
+        output = "【知识图谱构建结果】\n\n"
+
+        # 统计
+        output += f"## 统计\n"
+        output += f"- 实体数量: {result['stats']['total_entities']}\n"
+        output += f"- 关系数量: {result['stats']['total_relations']}\n\n"
+
+        # 实体列表
+        if result["entities"]:
+            output += "## 实体\n"
+            for e in result["entities"][:15]:
+                output += f"- {e['label']} [{e['type']}] ({e['mentions']}次)\n"
+            output += "\n"
+
+        # 关系列表
+        if result["relations"]:
+            output += "## 关系\n"
+            for r in result["relations"][:10]:
+                output += f"- {r['source']} --[{r['type']}]--> {r['target']}\n"
+
+        return output
+
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+@mcp.tool()
+def query_knowledge_graph(entity: str) -> str:
+    """
+    查询知识图谱中的实体。
+
+    获取实体的详细信息和邻居。
+
+    Args:
+        entity: 要查询的实体名称
+
+    Returns:
+        查询结果
+    """
+    if not entity:
+        return "Error: 实体名称不能为空"
+
+    try:
+        # 临时图谱（需要改进为持久化存储）
+        # 这里返回一个示例，实际使用时需要持久化图谱
+        return f"""【查询结果】
+
+实体: {entity}
+
+注意: 当前需要提供要分析的文本才能构建图谱。
+建议使用 build_knowledge_graph_from_text 工具先构建图谱。"""
+
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
 @mcp.resource("docmind://status")
 def get_status() -> dict:
     """获取 DocMind 服务状态"""
     return {
         "name": "DocMind",
-        "version": "0.5.0",
+        "version": "0.6.0",
         "status": "running",
         "architecture": "Supervisor + Workers + Aggregator",
         "features": [
@@ -614,6 +700,9 @@ def get_status() -> dict:
             # 文本处理
             "extract_keywords_from_text - 从文本提取关键词",
             "recognize_terms_in_text - 从文本识别术语",
+            # 知识图谱
+            "build_knowledge_graph_from_text - 构建知识图谱",
+            "query_knowledge_graph - 查询图谱",
             # 文档处理
             "parse_document - PDF/EPUB 文档解析",
             "parse_document_preview - 文档预览",

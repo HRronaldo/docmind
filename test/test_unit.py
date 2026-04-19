@@ -208,5 +208,52 @@ class TestNLP:
         assert "**深度学习**" in annotated
 
 
+class TestKnowledgeGraph:
+    """知识图谱测试"""
+
+    def test_extract_entities_relations(self):
+        """测试实体关系提取"""
+        from app.nlp.kg import extract_entities_relations
+
+        result = extract_entities_relations("深度学习由神经网络组成，PyTorch是Facebook开发的框架")
+        assert "entities" in result
+        assert "relations" in result
+        assert len(result["entities"]) > 0
+
+    def test_knowledge_graph_class(self):
+        """测试 KnowledgeGraph 类"""
+        from app.nlp.kg import KnowledgeGraph
+
+        kg = KnowledgeGraph()
+        kg.add_text("BERT是Google开发的模型")
+        kg.add_text("Transformer由Google提出")
+
+        assert len(kg.entities) > 0
+        assert len(kg.relations) > 0
+
+    def test_graph_query(self):
+        """测试图谱查询"""
+        from app.nlp.kg import KnowledgeGraph
+
+        kg = KnowledgeGraph()
+        kg.add_text("BERT是Google开发的模型")
+        kg.add_text("Google还开发了Transformer")
+
+        result = kg.query("Google")
+        assert result.get("found") is True
+        assert result.get("mentions") == 2
+
+    def test_graph_neighbors(self):
+        """测试获取邻居"""
+        from app.nlp.kg import KnowledgeGraph
+
+        kg = KnowledgeGraph()
+        kg.add_text("BERT是Google开发的模型")
+        kg.add_text("Transformer由Google提出")
+
+        neighbors = kg.get_neighbors("Google")
+        assert len(neighbors) > 0
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
