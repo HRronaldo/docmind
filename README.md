@@ -135,6 +135,8 @@ fastmcp run app.mcp.server sse
 | `recognize_terms_in_url` | 从 URL 识别专业术语 |
 | `recognize_terms_in_text` | 从文本识别术语 |
 | `build_knowledge_graph_from_text` | 构建知识图谱（实体+关系） |
+| `generate_note_template` | 生成笔记模板（summary/book/meeting/tutorial/review） |
+| `generate_review_schedule` | 生成复习计划（艾宾浩斯记忆曲线） |
 | `parse_document` | 解析 PDF/EPUB 文档并提取文本 |
 | `parse_document_preview` | 文档预览（快速摘要） |
 | `analyze_document_full` | 综合文档分析（内容+关键词+术语） |
