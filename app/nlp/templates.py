@@ -9,6 +9,7 @@
 - 读书笔记模板
 - 会议记录模板
 - 教程笔记模板
+- 复习笔记模板（间隔重复）
 
 Usage:
 ```python
@@ -19,6 +20,9 @@ template = generate_note_template("summary", title="深度学习介绍", content
 
 # 生成读书笔记模板
 template = generate_note_template("book", book_title="深度学习", author="Ian Goodfellow")
+
+# 生成复习笔记模板
+template = generate_note_template("review", title="深度学习", review_date="2026-05-01")
 ```
 """
 
@@ -138,6 +142,37 @@ class NoteTemplate:
 ---
 *由 DocMind 自动生成*
 """,
+
+        "review": """# {title} - 复习笔记
+
+> 首次学习：{first_date}
+> 复习周期：{interval}
+> 建议复习日期：{review_date}
+
+## 核心概念
+{concepts}
+
+## 关键知识点
+{key_points}
+
+## 我的理解
+{understanding}
+
+## 遗忘点
+- [ ]
+
+## 复习总结
+{summary}
+
+## 下次复习
+- 1天后：检查遗忘点
+- 3天后：尝试默写
+- 7天后：应用实践
+- 30天后：复盘总结
+
+---
+*由 DocMind 自动生成 - 间隔重复笔记*
+""",
     }
     
     @classmethod
@@ -254,3 +289,71 @@ def extract_highlights(content: str, max_highlights: int = 5) -> list:
             highlights.append(sent)
     
     return highlights[:max_highlights]
+
+
+# 复习计划生成功能
+def generate_review_schedule(
+    content: str, 
+    first_date: str = None,
+    intervals: list = None
+) -> dict:
+    """
+    生成复计划（简化版 - 不需要数据库）
+    
+    根据首次学习日期，生成建议的复习日期。
+    用户需要手动将这些日期记录到笔记中。
+    
+    Args:
+        content: 文档内容
+        first_date: 首次学习日期 (YYYY-MM-DD)，默认今天
+        intervals: 复习间隔天数列表
+        
+    Returns:
+        复习计划词典
+    """
+    from datetime import datetime, timedelta
+    
+    if first_date is None:
+        first_date = datetime.now().strftime("%Y-%m-%d")
+    
+    if intervals is None:
+        intervals = [1, 3, 7, 14, 30]  # 默认间隔：1天、3天、7天、14天、30天
+    
+    # 解析首次日期
+    try:
+        first = datetime.strptime(first_date, "%Y-%m-%d")
+    except ValueError:
+        first = datetime.now()
+    
+    # 生成复习日期
+    schedule = {
+        "first_date": first_date,
+        "intervals": intervals,
+        "reviews": []
+    }
+    
+    for days in intervals:
+        review_date = first + timedelta(days=days)
+        schedule["reviews"].append({
+            "day": days,
+            "date": review_date.strftime("%Y-%m-%d"),
+            "type": _get_review_type(days)
+        })
+    
+    return schedule
+
+
+def _get_review_type(days: int) -> str:
+    """根据间隔天数返回复习类型"""
+    if days == 1:
+        return "快速回顾"
+    elif days == 3:
+        return "记忆巩固"
+    elif days == 7:
+        return "理解深化"
+    elif days == 14:
+        return "知识串联"
+    elif days == 30:
+        return "长期记忆"
+    else:
+        return "复习巩固"

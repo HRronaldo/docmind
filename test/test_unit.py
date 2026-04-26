@@ -291,6 +291,24 @@ class TestNoteTemplates:
         assert "book" in types
         assert "meeting" in types
 
+    def test_review_template(self):
+        """测试复习模板"""
+        from app.nlp.templates import generate_note_template, generate_review_schedule
+        
+        # Test review template
+        template = generate_note_template(
+            "review", 
+            title="深度学习",
+            first_date="2026-04-19"
+        )
+        assert "复习笔记" in template
+        assert "深度学习" in template
+        
+        # Test review schedule
+        schedule = generate_review_schedule("test", first_date="2026-04-19")
+        assert "reviews" in schedule
+        assert len(schedule["reviews"]) == 5
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
