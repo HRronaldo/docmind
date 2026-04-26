@@ -96,24 +96,15 @@ fastmcp run app.mcp.server sse
 
 ```json
 {
-  "$schema": "https://opencode.ai/config.json",
-  "autoupdate": true,
-  "plugin": [
-    "oh-my-openagent@latest",
-    "@tarquinen/opencode-dcp@latest",
-    "superpowers@git+https://github.com/obra/superpowers.git"
-  ],
   "mcp": {
     "docmind": {
       "type": "local",
-      "command": ["uv", "run", "--directory", "D:\\program\\openclaw_demo\\docmind", "python", "-m", "app.mcp.server", "stdio"],
+      "command": ["uv", "run", "--directory", "/path/to/docmind", "python", "-m", "app.mcp.server", "stdio"],
       "enabled": true
     }
   }
 }
 ```
-
-**注意：** API Key 配置在项目根目录的 `.env` 文件中，无需在配置中暴露。
 
 ### Claude Desktop 集成
 
