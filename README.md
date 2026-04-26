@@ -216,33 +216,44 @@ API Key 从 https://open.bigmodel.cn 获取。
 docmind/
 ├── app/
 │   ├── agent/          # Agent 核心模块
-│   │   ├── supervisor.py      # 任务规划器（LLM 决策）
-│   │   ├── aggregator.py      # 结果汇总器
-│   │   ├── multi_agent.py    # Multi-Agent 整合架构
-│   │   ├── react_agent.py    # ReAct Worker
+│   │   ├── supervisor.py      # 任务规划器
+│   │   ├── aggregator.py    # 结果汇总器
+│   │   ├── multi_agent.py  # Multi-Agent 架构
+│   │   ├── react_agent.py  # ReAct Worker
 │   │   ├── langgraph_agent.py # LangGraph 状态机
-│   │   ├── tools.py          # 工具定义
-│   │   └── prompt.py        # Prompt 模板
+│   │   ├── human_loop.py   # Human-in-the-loop
+│   │   ├── tools.py        # 工具定义
+│   │   └── prompt.py      # Prompt 模板
 │   ├── nlp/            # 中文 NLP 模块
-│   │   ├── segmenter.py   # 中文分词（jieba）
-│   │   ├── keywords.py    # 关键词提取
-│   │   ├── terms.py      # 术语识别
-│   │   └── kg.py        # 知识图谱
+│   │   ├── segmenter.py  # 中文分词（jieba）
+│   │   ├── keywords.py   # 关键词提取
+│   │   ├── terms.py     # 术语识别
+│   │   ├── kg.py       # 知识图谱
+│   │   └── templates.py # 笔记模板
 │   ├── api/            # FastAPI 路由
 │   ├── mcp/            # MCP Server
-│   │   ├── server.py          # MCP 主服务器
-│   │   └── servers/           # MCP 服务模块
-│   │       ├── document_parser.py  # 文档解析（PDF/EPUB）
-│   │       ├── pdf_parser.py       # PDF 解析
-│   │       ├── epub_parser.py      # EPUB 解析
-│   │       └── obsidian_sync.py    # Obsidian 同步
+│   │   ├── server.py       # MCP 主服务器
+│   │   └── servers/      # MCP 服务模块
+│   │       ├── document_parser.py
+│   │       ├── pdf_parser.py
+│   │       ├── epub_parser.py
+│   │       └── obsidian_sync.py
 │   ├── services/       # 业务逻辑
-│   ├── core/           # 配置
-│   └── main.py         # 入口
-├── test/               # 测试文件
-│   └── test_unit.py   # 单元测试
-├── pyproject.toml      # 项目配置
-├── docker-compose.yml  # Docker 部署
+│   │   └── chat_service.py
+│   ├── core/          # 核心配置
+│   │   ├── logger.py
+│   │   ├── exceptions.py
+│   │   ├── config.py
+│   │   └── utils.py
+│   └── main.py        # 入口
+├── test/              # 测试文件
+│   ├── test_core.py
+│   ├── test_nlp.py
+│   ├── test_document.py
+│   ├── test_templates.py
+│   └── test_mcp.py
+├── pyproject.toml
+├── docker-compose.yml
 └── Dockerfile
 ```
 
