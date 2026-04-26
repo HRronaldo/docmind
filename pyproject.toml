@@ -1,6 +1,6 @@
 [project]
 name = "docmind"
-version = "0.1.0"
+version = "0.7.0"
 description = "基于 LangChain + GLM 的智能文档摘要服务，支持 API 和 MCP 协议"
 authors = [{name = "hrronaldo", email = "hrronaldo@163.com"}]
 requires-python = "==3.12.7"
