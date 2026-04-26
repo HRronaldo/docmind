@@ -10,6 +10,8 @@ import os
 import subprocess
 import signal
 import sys
+import logging
+from pathlib import Path
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -28,6 +30,25 @@ HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "5000"))
 DEBUG = os.getenv("DEBUG", "true").lower() == "true"
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*")
+
+# Logging
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+LOG_FILE = os.getenv("LOG_FILE", "docmind.log")
+
+# 设置日志级别
+_log_level = getattr(logging, LOG_LEVEL, logging.INFO)
+
+# 初始化日志系统
+from app.core.logger import setup_logger
+
+# 更新 LOG_DIR（从环境变量读取）
+from app.core import logger as logger_module
+
+logger_module.LOG_DIR = Path(os.getenv("LOG_DIR", str(logger_module.LOG_DIR)))
+logger_module.LOG_DIR.mkdir(exist_ok=True)
+
+# 初始化默认 logger（日志文件始终写入）
+logger_module.default_logger = setup_logger(level=_log_level, log_file=LOG_FILE)
 
 
 def kill_port(port: int) -> bool:
