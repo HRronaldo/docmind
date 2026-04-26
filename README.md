@@ -92,21 +92,28 @@ fastmcp run app.mcp.server sse
 
 ### OpenCode 集成
 
-在 OpenCode 中配置 MCP Server：
+在 OpenCode 配置文件 `opencode.json` 中配置 MCP Server：
 
 ```json
 {
-  "mcpServers": {
+  "$schema": "https://opencode.ai/config.json",
+  "autoupdate": true,
+  "plugin": [
+    "oh-my-openagent@latest",
+    "@tarquinen/opencode-dcp@latest",
+    "superpowers@git+https://github.com/obra/superpowers.git"
+  ],
+  "mcp": {
     "docmind": {
-      "command": "uv",
-      "args": ["--directory", "/path/to/docmind", "run", "python", "-m", "app.mcp.server"],
-      "env": {
-        "ZHIPU_API_KEY": "your-api-key"
-      }
+      "type": "local",
+      "command": ["uv", "run", "--directory", "D:\\program\\openclaw_demo\\docmind", "python", "-m", "app.mcp.server", "stdio"],
+      "enabled": true
     }
   }
 }
 ```
+
+**注意：** API Key 配置在项目根目录的 `.env` 文件中，无需在配置中暴露。
 
 ### Claude Desktop 集成
 
@@ -176,11 +183,27 @@ docker-compose logs -f
 
 ## ⚙️ 配置
 
+### 1. 复制环境配置
+
+```bash
+# 复制 .env.example 为 .env
+copy .env.example .env
+```
+
+### 2. 编辑 .env 填入 API Key
+
+```
+ZHIPU_API_KEY=your-api-key-here
+```
+
+API Key 从 https://open.bigmodel.cn 获取。
+
 ### 环境变量
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
 | `ZHIPU_API_KEY` | 智谱 AI API Key | 必填 |
+| `GLM_MODEL` | 模型名称 | glm-4 |
 | `GLM_MODEL` | 模型名称 | glm-4 |
 | `GLM_TEMPERATURE` | 采样温度 | 0.7 |
 | `GLM_MAX_TOKENS` | 最大 Token 数 | 4096 |
