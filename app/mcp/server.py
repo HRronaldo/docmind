@@ -20,6 +20,12 @@ from app.mcp.servers import (
 )
 from app.nlp import extract_keywords, TermRecognizer
 from app.nlp.kg import KnowledgeGraph
+from app.nlp.templates import (
+    generate_note_template, 
+    generate_from_content, 
+    extract_highlights,
+    generate_review_schedule,
+)
 
 # 自动加载项目根目录的 .env 文件
 load_dotenv()
@@ -391,10 +397,94 @@ def extract_keywords_from_text(text: str, top_k: int = 10) -> str:
         for i, keyword in enumerate(keywords, 1):
             result += f"{i}. {keyword}\n"
 
+        result += f"\n共提取 {len(keywords)} 个关键词。"
         return result
 
     except Exception as e:
         return f"Error: {str(e)}"
+
+
+@mcp.tool()
+def generate_review_schedule_tool(content: str, first_date: Optional[str] = None) -> str:
+    """
+    生成复习计划（基于艾宾浩斯记忆曲线）。
+    
+    根据首次学习日期，生成建议的复习日期。
+    
+    Args:
+        content: 文档/笔记内容
+        first_date: 首次学习日期 (YYYY-MM-DD)，默认今天
+        
+    Returns:
+        复习计划（Markdown 格式）
+    """
+    schedule = generate_review_schedule(content, first_date=first_date)
+    
+    result = f"""## 📅 复习计划
+
+**首次学习**: {schedule['first_date']}
+**复习间隔**: {', '.join(map(str, schedule['intervals']))} 天
+
+### 复习安排
+
+"""
+    for r in schedule['reviews']:
+        result += f"- **{r['day']}天后** ({r['date']}): {r['type']}\n"
+    
+    result += """
+---
+*由 DocMind 自动生成 - 间隔重复记忆*"""
+    
+    return result
+
+
+@mcp.tool()
+def generate_note_template_tool(
+    template_type: str = "summary",
+    title: str = "Untitled",
+    first_date: str = "",
+    review_date: str = "",
+    concepts: str = "",
+    key_points: str = "",
+    understanding: str = "",
+    summary: str = "",
+) -> str:
+    """
+    生成笔记模板。
+    
+    支持多种模板类型：
+    - summary: 摘要模板
+    - book: 读书笔记
+    - meeting: 会议记录
+    - tutorial: 教程笔记
+    - review: 复习笔记（间隔重复）
+    
+    Args:
+        template_type: 模板类型
+        title: 笔记标题
+        **kwargs: 其他模板变量
+        
+    Returns:
+        填充后的笔记模板
+    """
+    valid_types = ["summary", "book", "meeting", "tutorial", "review"]
+    if template_type not in valid_types:
+        return f"Error: 无效的模板类型。支持的类型: {', '.join(valid_types)}"
+    
+    kwargs = {"title": title}
+    if first_date:
+        kwargs["first_date"] = first_date
+    if review_date:
+        kwargs["review_date"] = review_date
+    if concepts:
+        kwargs["concepts"] = concepts
+    if key_points:
+        kwargs["key_points"] = key_points
+    if understanding:
+        kwargs["understanding"] = understanding
+    if summary:
+        kwargs["summary"] = summary
+    return generate_note_template(template_type, **kwargs)
 
 
 @mcp.tool()
