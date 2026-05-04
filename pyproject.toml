@@ -3,7 +3,7 @@ name = "docmind"
 version = "0.7.0"
 description = "基于 LangChain + GLM 的智能文档摘要服务，支持 API 和 MCP 协议"
 authors = [{name = "hrronaldo", email = "hrronaldo@163.com"}]
-requires-python = "==3.12.7"
+requires-python = ">=3.12"
 dependencies = [
     "fastapi==0.135.1",
     "uvicorn[standard]==0.41.0",

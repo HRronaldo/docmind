@@ -12,11 +12,11 @@ RUN apt-get update && apt-get install -y \
 # Install uv
 RUN pip install uv
 
-# Copy pyproject.toml first for better caching
-COPY pyproject.toml .
+# Copy pyproject.toml and uv.lock first for better caching
+COPY pyproject.toml uv.lock ./
 
 # Install Python dependencies using uv
-RUN uv pip install --system --no-cache -r pyproject.toml
+RUN uv pip install --system --no-cache .
 
 # Copy application code
 COPY app/ ./app/

@@ -61,7 +61,7 @@ def get_service() -> ChatService:
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
     """Health check endpoint."""
-    return HealthResponse(status="ok", version="1.0.0")
+    return HealthResponse(status="ok", version="0.7.0")
 
 
 @router.post("/init", response_model=Dict)

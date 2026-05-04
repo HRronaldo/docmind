@@ -102,7 +102,7 @@ async def root():
     """
     return {
         "name": "DocMind - 智能文档摘要服务",
-        "version": "1.0.0",
+        "version": "0.7.0",
         "description": "基于 LangChain + GLM 的智能文档摘要服务",
         "docs": "/docs",
         "endpoints": {
@@ -122,5 +122,5 @@ if __name__ == "__main__":
         "app.main:app",
         host=HOST,
         port=PORT,
-        reload=False,  # 临时禁用 watch
+        reload=DEBUG,
     )
