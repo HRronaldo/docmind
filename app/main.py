@@ -7,7 +7,8 @@ DocMind - 智能文档摘要服务
 1. 初始化 FastAPI 应用
 2. 配置 CORS 中间件
 3. 注册路由
-4. 管理应用生命周期（启动/关闭）
+4. 挂载 MCP Server (SSE 模式)
+5. 管理应用生命周期（启动/关闭）
 
 使用方法：
     uv run python -m app.main
@@ -18,10 +19,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from fastmcp.utilities.lifespan import combine_lifespans
 
 from app.api.routes import router
 from app.core.config import HOST, PORT, DEBUG, ALLOWED_ORIGINS, ensure_port_available
 from app.services.chat_service import get_chat_service
+from app.mcp.server import mcp
 
 # 加载 .env 文件中的环境变量
 load_dotenv()
@@ -32,18 +35,14 @@ if not ensure_port_available(PORT):
     print(f"\n[X] Port {PORT} is not available, please close the process")
     exit(1)
 
+# ===== 创建 MCP ASGI 应用 =====
+mcp_app = mcp.http_app(path="/")
+
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def app_lifespan(app: FastAPI):
     """
-    应用生命周期管理器。
-
-    在应用启动时：
-    - 尝试从环境变量初始化 Agent
-    - 如果没有 API Key，提醒用户手动初始化
-
-    在应用关闭时：
-    - 清理资源
+    DocMind 应用生命周期管理。
     """
     # ===== 启动阶段 =====
     print("Starting DocMind Service...")
@@ -71,7 +70,7 @@ app = FastAPI(
     title="DocMind API",
     description="基于 LangChain + GLM 的智能文档摘要服务，支持 RESTful API 和 MCP 协议",
     version="1.0.0",
-    lifespan=lifespan,
+    lifespan=combine_lifespans(app_lifespan, mcp_app.lifespan),
     debug=DEBUG,
 )
 
@@ -89,6 +88,9 @@ app.add_middleware(
 
 # ===== 注册路由 =====
 app.include_router(router)
+
+# ===== 挂载 MCP Server =====
+app.mount("/sse", mcp_app)
 
 
 # ===== 根路由 =====
