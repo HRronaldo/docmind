@@ -234,7 +234,7 @@ class LangGraphAgent:
             return {
                 "session_id": session_id,
                 "response": result.get("response", ""),
-                "url_processed": result.get("urls_found", []),
+                "url_processed": ", ".join(result.get("urls_found", [])) if result.get("urls_found") else None,
                 "success": True,
             }
 
