@@ -15,11 +15,9 @@ DocMind - 智能文档摘要服务
 """
 
 import os
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from fastmcp.utilities.lifespan import combine_lifespans
 
 from app.api.routes import router
 from app.core.config import HOST, PORT, DEBUG, ALLOWED_ORIGINS, ensure_port_available
@@ -39,38 +37,13 @@ if not ensure_port_available(PORT):
 mcp_app = mcp.http_app(path="/")
 
 
-@asynccontextmanager
-async def app_lifespan(app: FastAPI):
-    """
-    DocMind 应用生命周期管理。
-    """
-    # ===== 启动阶段 =====
-    print("Starting DocMind Service...")
-
-    # 尝试使用环境变量中的 API Key 初始化服务
-    api_key = os.getenv("ZHIPU_API_KEY")
-    if api_key:
-        try:
-            service = get_chat_service()
-            service.initialize(api_key=api_key)
-            print("Agent initialized with environment API key")
-        except Exception as e:
-            print(f"Warning: Could not initialize agent: {e}")
-    else:
-        print("Warning: ZHIPU_API_KEY not set. Call /api/v1/init to initialize.")
-
-    yield
-
-    # ===== 关闭阶段 =====
-    print("Shutting down...")
-
-
 # ===== 创建 FastAPI 应用 =====
+# 使用 MCP lifespan 管理 session
 app = FastAPI(
     title="DocMind API",
     description="基于 LangChain + GLM 的智能文档摘要服务，支持 RESTful API 和 MCP 协议",
     version="1.0.0",
-    lifespan=combine_lifespans(app_lifespan, mcp_app.lifespan),
+    lifespan=mcp_app.lifespan,
     debug=DEBUG,
 )
 
@@ -91,6 +64,23 @@ app.include_router(router)
 
 # ===== 挂载 MCP Server =====
 app.mount("/sse", mcp_app)
+
+
+# ===== 启动事件（v2 兼容方式）=====
+@app.on_event("startup")
+async def startup_event():
+    """应用启动时初始化 Agent。"""
+    print("Starting DocMind Service...")
+    api_key = os.getenv("ZHIPU_API_KEY")
+    if api_key:
+        try:
+            service = get_chat_service()
+            service.initialize(api_key=api_key)
+            print("Agent initialized with environment API key")
+        except Exception as e:
+            print(f"Warning: Could not initialize agent: {e}")
+    else:
+        print("Warning: ZHIPU_API_KEY not set. Call /api/v1/init to initialize.")
 
 
 # ===== 根路由 =====
